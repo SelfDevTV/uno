@@ -1,91 +1,49 @@
-import Image from 'next/image'
-import { Inter } from '@next/font/google'
-import styles from './page.module.css'
-
-const inter = Inter({ subsets: ['latin'] })
+"use client";
+import Deck from "@/components/Deck";
+import DiscardDeck from "@/components/DiscardDeck";
+import GameTable from "@/components/GameTable";
+import Ki from "@/components/Ki";
+import Player from "@/components/Player";
+import Ui from "@/components/Ui";
+import useUnoStore from "@/store/useUnoStore";
+import { useEffect } from "react";
 
 export default function Home() {
+  const unoGame = useUnoStore((state) => state);
+  const initGame = useUnoStore((state) => state.init);
+  const startGame = useUnoStore((state) => state.start);
+
+  useEffect(() => {
+    initGame();
+    startGame();
+  }, [initGame, startGame]);
+
+  /* TODO:
+    * keep track of enemy hand
+    * keep track of player hand
+    * kepp track of deck and cards and playing pile
+
+  */
+
+  /* TODO:
+
+    * Game starts: player sees a staple of cards and his own hands with 7 cards, 
+    he also sees enemy player hand with 7 cards but turned over
+    * Decide who can start the round, create the "pile"
+    * the player that can start will play, if it's the KI the ki will play first card and player waits
+    * if the player can play the card he will see and indicator that shows this
+    * player can only play cards that are visually displayed in his hand
+    * player needs to drag the card to the pile, if he can't he has to click the drawing pile
+    * switch players turns until the game is over
+
+    */
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
-        </div>
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+    <GameTable>
+      <Ki hand={unoGame.ki.hand} />
+      <Player hand={unoGame.player.hand} />
+      <Deck />
+      <DiscardDeck discardedCards={unoGame.discardedCards} />
+      <Ui currentTurn={unoGame.currentTurn} />
+    </GameTable>
+  );
 }
