@@ -24,26 +24,22 @@ const Card = ({
   cardWild,
   id,
 }: CardProps) => {
-  const discardPile = useUnoStore((state) => state.discardedCards);
   const playCard = useUnoStore((state) => state.playCard);
+  const drawCard = useUnoStore((state) => state.drawCard);
 
-  const handlePlayCard = () => {
+  const handleClickCard = () => {
     // if the card that was clicked is a player card and if the card is
     // "compatible" with the current visible discard pile card
 
     // get visible card on pile
-    const topCard = discardPile.at(0);
+    if (belongsTo === "player") {
+      const success = playCard(id, belongsTo);
+      console.log("suceess playing card: ", success);
+    }
 
-    if (belongsTo == "player") {
-      if (
-        topCard?.cardColor == cardColor ||
-        topCard?.cardNumber == cardNumber
-      ) {
-        playCard(id, "player");
-        console.log("card compatible");
-      } else {
-        console.log("card not compatible");
-      }
+    if (belongsTo === "deck") {
+      const sucess = drawCard("player");
+      console.log("success drawing card: ", sucess);
     }
   };
   return (
@@ -55,7 +51,7 @@ const Card = ({
       alt="Uno Card"
       width={width}
       height={height}
-      onClick={handlePlayCard}
+      onClick={handleClickCard}
     />
   );
 };

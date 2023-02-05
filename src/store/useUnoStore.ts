@@ -11,11 +11,12 @@ interface UnoState {
   dealCardsTo: (name: string, quant: number) => void;
   start: () => void;
   init: () => void;
-  playCard: (cardId: string, source: CardOwner) => void;
+  playCard: (cardId: string, source: CardOwner) => boolean;
+  drawCard: (source: CardOwner) => boolean;
 }
 
 const generateUnoCards = (): ICard[] => {
-  const baseImgPath = "/assets/cards/small/";
+  const baseImgPath = "/assets/cards/large/";
   let cards = [];
 
   // color and number cards
@@ -27,14 +28,14 @@ const generateUnoCards = (): ICard[] => {
   };
 
   const actionsDict: Mapping = {
-    0: "draw-2",
+    0: "picker",
     1: "reverse",
     2: "skip",
   };
 
   const wildDict: Mapping = {
-    0: "wild",
-    1: "wild-draw-4",
+    0: "wild-color-changer",
+    1: "wild-pick-four",
   };
   // colors
   for (let i = 0; i < 4; i++) {
@@ -46,7 +47,7 @@ const generateUnoCards = (): ICard[] => {
           id: uuid(),
           cardColor: colorDict[i],
           cardNumber: j,
-          imageUrl: `${baseImgPath}${colorDict[i]}_${j}.png`,
+          imageUrl: `${baseImgPath}${colorDict[i]}_${j}_large.png`,
         };
         cards.push(card);
       } else {
@@ -55,7 +56,7 @@ const generateUnoCards = (): ICard[] => {
           id: uuid(),
           cardColor: colorDict[i],
           cardNumber: j,
-          imageUrl: `${baseImgPath}${colorDict[i]}_${j}.png`,
+          imageUrl: `${baseImgPath}${colorDict[i]}_${j}_large.png`,
         };
         cards.push(card);
         cards.push(card);
@@ -67,6 +68,7 @@ const generateUnoCards = (): ICard[] => {
         id: uuid(),
         cardColor: colorDict[i],
         cardAction: actionsDict[k],
+        imageUrl: `${baseImgPath}${colorDict[i]}_${actionsDict[k]}_large.png`,
       };
       cards.push(card);
       cards.push(card);
@@ -78,6 +80,7 @@ const generateUnoCards = (): ICard[] => {
     const card: ICard = {
       id: uuid(),
       cardWild: wildDict[l],
+      imageUrl: `${baseImgPath}${wildDict[l]}_large.png`,
     };
     cards.push(card);
     cards.push(card);
@@ -87,7 +90,7 @@ const generateUnoCards = (): ICard[] => {
 
   cards = cards.map((card: ICard) => ({
     ...card,
-    cardHiddenUrl: baseImgPath + "card_back.png",
+    cardHiddenUrl: baseImgPath + "card_back_large.png",
   }));
 
   return cards;
@@ -102,6 +105,23 @@ const shuffleArray = (array: ICard[]): ICard[] => {
     arrCopy[j] = temp;
   }
   return arrCopy;
+};
+
+const isAllowedToDraw = (lastCardFromDiscardPile: ICard, source: IPlayer) => {
+  console.log("last card from disc pile: ", lastCardFromDiscardPile);
+  console.log("players current hand: ", source.hand);
+  let allowedToDraw = true;
+  source.hand.forEach((card: ICard) => {
+    if (
+      card.cardWild ||
+      card.cardColor === lastCardFromDiscardPile.cardColor ||
+      card.cardNumber === lastCardFromDiscardPile.cardNumber
+    ) {
+      allowedToDraw = false;
+    }
+  });
+
+  return allowedToDraw;
 };
 
 const useUnoStore = create<UnoState>((set, get) => ({
@@ -160,23 +180,73 @@ const useUnoStore = create<UnoState>((set, get) => ({
     // filter out the card from
     if (source === "player") {
       // find the card in hand
-      const discardCard = get().player.hand.find(
+      const playedCard: ICard = get().player.hand.find(
         (card: ICard) => card.id === cardId
       );
 
-      // filter out the hand of player
-      const newHand = get().player.hand.filter(
-        (card: ICard) => card.id !== cardId
-      );
+      const topPileCard = get().discardedCards[0];
+
+      // check if player is allowed to play card
+
+      if (
+        playedCard.cardWild ||
+        playedCard.cardColor === topPileCard.cardColor ||
+        playedCard.cardNumber === topPileCard.cardNumber
+      ) {
+        const newHand = get().player.hand.filter(
+          (card: ICard) => card.id !== cardId
+        );
+        set((state) => ({
+          discardedCards: [playedCard, ...state.discardedCards],
+          player: {
+            ...state.player,
+            hand: newHand,
+          },
+        }));
+        return true;
+      } else {
+      }
+      return false;
+    }
+
+    return false;
+  },
+  drawCard: (source: CardOwner) => {
+    // check if allowed to even draw a card
+
+    // get first card of deck and put into players hand
+
+    const lastCardFromDeck = get().deck[0];
+    const lastCardFromDiscardPile = get().discardedCards[0];
+    let copyOfDeck = get().deck;
+    copyOfDeck.shift();
+
+    if (source === "player") {
+      if (!isAllowedToDraw(lastCardFromDiscardPile, get().player)) return false;
 
       set((state) => ({
-        discardedCards: [discardCard, ...state.discardedCards],
+        deck: copyOfDeck,
         player: {
           ...state.player,
-          hand: newHand,
+          hand: [...state.player.hand, lastCardFromDeck],
         },
       }));
+      return true;
     }
+
+    if (source === "ki") {
+      if (!isAllowedToDraw(lastCardFromDiscardPile, get().ki)) return false;
+      set((state) => ({
+        deck: copyOfDeck,
+        ki: {
+          ...state.ki,
+          hand: [...state.ki.hand, lastCardFromDeck],
+        },
+      }));
+      return true;
+    }
+
+    return false;
   },
 }));
 

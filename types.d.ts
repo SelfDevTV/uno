@@ -9,7 +9,7 @@ export interface ICard {
 }
 
 export interface IPlayer {
-  name: string?;
+  name: CardOwner;
   hand: Card[];
 }
 
